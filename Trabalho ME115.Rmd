@@ -8,8 +8,70 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
 ```{r}
-library(readr)
-df <- read_csv("https://raw.githubusercontent.com/usuario/repositorio/main/dados.csv")
+### Vai colar o repositório do github que está o trabalho do R
+
+library(git2r)
+
+clone("https://github.com/diegopiresss/Trabalho---video_games_sales", "Trabalho R")
+```
+
+```{r}
+df <- read_csv('dados_games.csv')
+
+df
+```
+
+```{r}
+### Quais tipos de videogames nós temos e qual a sua representatividade
+
+unique(df$Platform)
+
+df %>% filter(Platform == 'Wii')
+```
+```{r}
+library(ggplot2)
+
+ggplot(df, aes(x = fct_infreq(Platform))) +
+  geom_bar(width = 0.5, color = 'blue', fill = 'blue') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Consoles", y = "Quantidade de jogos", title = "Quantidade de jogos por plataforma")
+```
+```{r}
+### Começando a fazer um gráfico de vendas por cada video-game - para focarmos as análises somente para os videogmes que são mais relevantes
+df_plataforma <- df %>% 
+  group_by(Platform) %>% 
+  summarise(Total_sales = sum(Global_Sales)) %>% 
+  arrange(desc(Total_sales))
+
+ggplot(df_plataforma, aes(x = reorder(Platform, -Total_sales), y = Total_sales)) +
+  geom_col(fill = 'blue') +
+  labs(
+    x = "Videogame",
+    y = "Vendas Totais (em milhões)",
+    title = "Vendas Totais por Videogame"
+  ) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+### Dropando todos os consoles que tem vendas muito baixas ou, são muito antigos e poucos conhecidos e relevanes para o mercado de games (essa remoção foi feita tando pela baixa de vendas e pelo conhecimento empírico do grupo sobre video games para dizer que essse consoles não são tão importantes nem relevantes para essa análise.)
+
+df <- df %>% filter(!Platform %in% c("2600", "PSV", "DC", "SCD", "NG", "WS", "TG16", "3DO", "GG", "PCFX", "GEN"))
+
+df_plataforma <- df %>% 
+  group_by(Platform) %>% 
+  summarise(Total_sales = sum(Global_Sales)) %>% 
+  arrange(desc(Total_sales))
+
+ggplot(df_plataforma, aes(x = reorder(Platform, -Total_sales), y = Total_sales)) +
+  geom_col(fill = 'blue') +
+  labs(
+    x = "Videogame",
+    y = "Vendas Totais (em milhões)",
+    title = "Vendas Totais por Videogame"
+  ) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
