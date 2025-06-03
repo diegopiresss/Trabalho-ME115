@@ -30,6 +30,7 @@ library(readr)
 library(forcats)
 library(dplyr)
 library(stringr)
+library(waffle)
 
 ```
 
@@ -53,6 +54,7 @@ df
 
 ```
 
+TEXTO: Explicar um pouco sobre o porque estamos dropando esses consoles (muito antigos, pouco relevantes, poucas vendas e poucos jogos)
 
 ```{r}
 ### Começando a fazer uma limpeza básica, removendo os consoles que tem menos do que 200 jogos
@@ -71,6 +73,10 @@ ggplot(df_filtrado, aes(x = fct_infreq(console))) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(x = "Consoles", y = "Quantidade de jogos", title = "Quantidade de jogos por plataforma")
 ```
+
+
+
+
 ```{r}
 ## Gráfico para saber quais foram os 20 jogos mais vendidos
 
@@ -99,6 +105,8 @@ ggplot(data = top20jogos, aes(x= title, y = total_vendas_titulo)) +
   theme_minimal()
 
 ```
+
+Texto: apresentar um pouco sobre os jogos mais vendidos, falar dos principais e, posteriormente falar sobre a análise dessas principais franquias que vamos fazer posteriormente.
 ```{r}
 ### Analisando as principais franquias de josogs - GTA, Call of Duty, The elder Scrolls, Fifa e Red dead Redemption
 
@@ -135,88 +143,56 @@ df_franquias <- df_filtrado %>%
     media_nota = mean(critic_score, na.rm = TRUE),
     .groups = "drop"
   )
+
+df_count <- df_filtrado %>%
+  filter(franquia != "Outros") %>%
+  count(franquia, name = "quantidade_de_jogos")
+
+max_qtd <- max(df_count$quantidade_de_jogos)
+
+ggplot(df_count, aes(x = quantidade_de_jogos, y = reorder(franquia, quantidade_de_jogos))) +
+  geom_segment(aes(x = 0, xend = quantidade_de_jogos, yend = franquia), color = "steelblue", linewidth = 2) +
+  geom_point(color = "steelblue", size = 4) +
+  geom_text(aes(label = quantidade_de_jogos), hjust = -0.3, size = 4, color = "grey") +
+  labs(
+    title = "Quantidade de Jogos por Franquia",
+    x = "Quantidade de Jogos",
+    y = "Franquia"
+  ) +
+  theme_minimal() +
+  coord_cartesian(xlim = c(0, max_qtd * 1.2))
+
+
+
 ```
 
 ```{r}
-
-# ==========================
-# 1. Vendas totais por franquia
-# ==========================
-ggplot(df_franquias, aes(x = reorder(franquia, vendas_totais), y = vendas_totais)) +
-  geom_col(fill = "steelblue") +
+### Gráficos de vendas totais por franquia
+ggplot(df_franquias, aes(x = franquia, y = vendas_totais)) +
+  geom_col(fill = "lightblue", color = "steelblue") +
   labs(
     title = "Vendas Totais por Franquia",
     x = "Franquia",
     y = "Vendas Totais (em milhões)"
   ) +
-  coord_flip() +
   theme_minimal()
 ```
 
-```{r}
+Texto: Apresentar um pouco dos dados vistos nesses gráficos e falar se talvez exista uma correlação entre a quantidade de lançamento por franquia pela quantidade maior de vendas.
 
-# ==========================
-# 2. Quantidade de jogos por franquia
-# ==========================
-ggplot(df_franquias, aes(x = reorder(franquia, quantidade_de_jogos), y = quantidade_de_jogos)) +
-  geom_col(fill = "darkorange") +
-  labs(
-    title = "Quantidade de Jogos por Franquia",
-    x = "Franquia",
-    y = "Quantidade de Jogos"
-  ) +
-  coord_flip() +
-  theme_minimal()
-```
-```{r}
 
-# ==========================
-# 3. Média das notas (Meta Score) por franquia
-# ==========================
+```{r}
+### Média da nota
 ggplot(df_franquias, aes(x = reorder(franquia, media_nota), y = media_nota)) +
-  geom_col(fill = "forestgreen") +
+  geom_col(fill = "lightblue", color = "steelblue") +
   labs(
     title = "Média das Notas (Meta Score) por Franquia",
     x = "Franquia",
     y = "Média das Notas"
   ) +
-  coord_flip() +
   theme_minimal()
 ```
-
-```{r}
-
-# ==========================
-# 4. Distribuição das vendas por jogo dentro de cada franquia
-# ==========================
-
-df_jogos_franquia <- df_filtrado %>%
-  filter(franquia != "Outros") %>%
-  group_by(franquia, title) %>%
-  summarise(
-    vendas_globais = sum(total_sales, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-ggplot(df_jogos_franquia, aes(x = reorder(title, vendas_globais), y = vendas_globais, fill = franquia)) +
-  geom_col() +
-  facet_wrap(~franquia, scales = "free") +
-  coord_flip() +
-  labs(
-    title = "Distribuição das Vendas por Jogo Dentro de Cada Franquia",
-    x = "Jogo",
-    y = "Vendas Globais (em milhões)"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none")
-```
-
-Fazer uma análise dos principais títulos e franquias
-
-```{r}
-df
-```
-
+TEXTO: Falar um pouco sobre e analisar os jogos com as maiores notas, falar mesmo com o conhecimento que a gente tem sobre o mercado, tipo: COD lança muito jogo e fifa tbm, logo o tempo de desenvolvimento entre jogos não é tão alto e os jogos tem menor "qualidade" o que é diferente para os GTA's.
 
 ```{r}
 ### Separando o dataset por gênero de jogos
@@ -232,19 +208,107 @@ df %>%
 
 
 ```
+Texto: Falar um pouco sobre quais são os gêneros mais jogados e falar um pouco sobre esse gêneros e tentar levantar hipóteses sobre o motivo pelos quais eles são tão jogados.
+
+
 
 ```{r}
-df %>% 
-  filter(console == "Wii") %>% 
-  count(genre) %>% 
-  arrange(desc(n)) %>% 
-  mutate(Genre = factor(genre, levels = genre)) %>% 
-  ggplot(aes(x = genre, y = n)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Quantidade de Jogos por Gênero no Wii",
-       x = "Gênero", y = "Quantidade") +
+### Analisar sobre as principais plataformas mais vendidas
+df_console_vendas <- df %>%
+  
+  group_by(console) %>%
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE)) %>%
+  filter(vendas_totais > 25)
+
+ggplot(df_console_vendas, aes(x = reorder(console, vendas_totais), y = vendas_totais)) +
+  geom_col(fill = "steelblue") +
   coord_flip() +
+  labs(
+    title = "Vendas Totais por Plataforma",
+    x = "Plataforma",
+    y = "Vendas (milhões)"
+  ) +
   theme_minimal()
+
+
+```
+
+TEXTO: FALAR UM POUCO SOBRE AS VENDAS POR PLATAFORMAS
+
+```{r}
+### Começando a análise de gêneros mais vendidos
+
+df_vendaspgen <- df_filtrado %>% 
+  group_by(genre) %>% 
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE))
+
+ggplot(df_vendaspgen, aes(x = reorder(genre,vendas_totais), y = vendas_totais)) +
+         geom_col(fill = "steelblue") +
+         coord_flip() +
+         labs(title = "Vendas por gênero de jogo",
+              x = "Gênero",
+              y = "Vendas (em milhões)"
+              )
+          + theme_minimal
+         
+        
+        
+
+ggplot(df_console_vendas, aes(x = reorder(console, vendas_totais), y = vendas_totais)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Vendas Totais por Plataforma",
+    x = "Plataforma",
+    y = "Vendas (milhões)"
+  ) +
+  theme_minimal()
+
+  
+```
+Falar um pouco sobre os gêneros de jogos e vendas, falar o que faz sentido e o que que não faz e talvez possíveis implicações que nós conseguimos retirar disso.
+
+```{r}
+df_publisher <- df_filtrado %>% 
+  group_by(publisher) %>%
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE)) %>% 
+  filter(vendas_totais >= 50)
+
+ggplot(df_publisher, aes(x = reorder(publisher, vendas_totais), y = vendas_totais)) +
+         geom_col(color = "steelblue", fill = "lightblue") +
+         coord_flip() +
+         labs(title ="Publishers com mais de 50 milhões de vendas",
+              x = "Publisher",
+              y = "Vendas (em milhões)")
+
+       
+
+```
+TEXTO: Falar um pouco sobre as publishers também.
+
+
+
+
+FAZER DEPOIS! INÍCIO DA ANÁLISE TEMPORAL, OU SEJA, IREMOS COMEÇAR A ANALISAR COMO OS MERCADOS FUNCINA AO DECORRER DO TEMPO
+
+```{r}
+df_filtrado <- df_filtrado %>% select(!last_update) %>% mutate(year = lubridate:: year(release_date)) # só removendo a coluna last_update para podermos trabalhar melhor com nossos dados
+
+df_vendaspano <- df_filtrado %>% 
+    group_by(year) %>% 
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE))
+
+ggplot(df_vendaspano, aes(x = year, y = vendas_totais)) +
+  geom_line(linewidth = 1.5, color = "steelblue") +
+  geom_point(size = 3) +
+  theme_minimal()
+```
+```{r}
+df_filtrado %>% filter(year == 2024
+                       )
+```
+
+```{r}
 
 ```
 
