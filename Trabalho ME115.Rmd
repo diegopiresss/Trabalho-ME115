@@ -1,13 +1,21 @@
 ---
-title: "Trabalho ME115"
+title: "Trabalho ME115 - Indústria de games vista por dados"
 output:
   html_document:
     df_print: paged
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+A indústria dos games configura-se, atualmente, como um dos setores mais expressivos e dinâmicos da economia global, destacando-se não apenas pelo volume financeiro que movimenta, mas também por sua relevância cultural, social e tecnológica. Desde sua consolidação na década de 1970, com o surgimento dos primeiros consoles domésticos, como o Atari 2600, este mercado tem experimentado um crescimento contínuo, impulsionado pelo avanço tecnológico, pela diversificação dos perfis de consumidores e pela constante inovação em produtos e serviços.
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+A trajetória evolutiva dos videogames pode ser compreendida por meio das principais gerações de consoles, cada uma representando marcos significativos no desenvolvimento da indústria. As primeiras gerações foram caracterizadas por gráficos simplificados, experiências de jogo limitadas e uma proposta de entretenimento doméstico inovadora para a época. Na sequência, com o advento de consoles como o Nintendo Entertainment System (NES) e o Sega Genesis, houve uma expansão significativa da base de usuários, além de avanços na qualidade dos gráficos, trilhas sonoras e na complexidade dos jogos.
+
+O mercado continuou sua transformação ao longo das gerações seguintes, com o surgimento de plataformas como PlayStation, Xbox e Nintendo 64, que introduziram gráficos tridimensionais, armazenamento em mídia ótica e experiências de jogo mais imersivas. Posteriormente, a indústria expandiu-se para além dos consoles físicos, incorporando plataformas móveis, computadores e, mais recentemente, serviços de streaming e jogos em nuvem. As gerações mais atuais, representadas pelo PlayStation 5, Xbox Series X|S e Nintendo Switch, evidenciam uma convergência entre desempenho gráfico, processamento avançado, conectividade e integração com serviços digitais, além da crescente adoção de tecnologias como realidade virtual (VR) e realidade aumentada (AR).
+
+Diante desse panorama de constante transformação, torna-se fundamental compreender os padrões que regem o comportamento do mercado de games, especialmente no que tange às dinâmicas de vendas, preferências de gênero, evolução das plataformas e a atuação das publishers (empresas desenvolvedoras e distribuidoras de jogos). Este trabalho tem como objetivo realizar uma análise descritiva e exploratória da indústria de videogames, utilizando como base um conjunto de dados que abrange informações sobre vendas globais, plataformas, gêneros e publishers, totalizando milhares de registros e variáveis.
+
+A partir da exploração desse dataset, busca-se compreender não apenas os títulos mais bem-sucedidos em termos de vendas, mas também traçar a evolução do mercado ao longo do tempo, identificando tendências, ciclos de crescimento e declínio, além da participação de mercado das principais empresas desenvolvedoras. Adicionalmente, serão analisadas as correlações entre as vendas em diferentes regiões do mundo, bem como o comportamento específico dos consumidores de acordo com o gênero dos jogos e as características das plataformas.
+
+Dessa forma, este relatório pretende oferecer uma visão abrangente sobre a evolução da indústria de games, contribuindo para a compreensão das dinâmicas mercadológicas que moldaram, e continuam moldando, um dos setores mais inovadores e relevantes da indústria contemporânea.
 ```{r}
 ### Importar bibliotecas
 getwd()
@@ -21,12 +29,14 @@ library(tidyr)
 library(readr)
 library(forcats)
 library(dplyr)
+library(stringr)
+
 ```
 
 ```{r}
 ### Vai colar o repositório do github que está o trabalho do R
 
-clone("https://github.com/diegopiresss/Trabalho---video_games_sales", "Trabalho R")
+#clone("https://github.com/diegopiresss/Trabalho---video_games_sales", "Trabalho R")
 ```
 
 ```{r}
@@ -36,12 +46,10 @@ df <- df %>% select(-img)
 
 df
 
-unique(df$console)    
-unique(df$genre)    
-unique(df$publisher)    
-unique(df$developer)
-
-
+#unique(df$console)    
+#unique(df$genre)    
+#unique(df$publisher)       não deixar esse unique, muito grande, usei só para ver o que ia ter que dropar
+#unique(df$developer)
 
 ```
 
@@ -59,7 +67,7 @@ df_filtrado <- df %>%
 df_filtrado
 
 ggplot(df_filtrado, aes(x = fct_infreq(console))) +
-  geom_bar(width = 0.5, color = 'lightblue', fill = 'lightblue') +
+  geom_bar(width = 0.5, color = 'steelblue', fill = 'lightblue') +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(x = "Consoles", y = "Quantidade de jogos", title = "Quantidade de jogos por plataforma")
 ```
@@ -85,71 +93,138 @@ top20jogos
 top20jogos$title <- factor(top20jogos$title, levels = top20jogos$title)
 
 ggplot(data = top20jogos, aes(x= title, y = total_vendas_titulo)) +
-  geom_col() +
+  geom_col(color = "steelblue", fill = "lightblue") +
   labs(title = '20 Jogos mais vendidos', x = 'Título', y = 'Vendas (em milhões)') +
   coord_flip() +
   theme_minimal()
 
 ```
+```{r}
+### Analisando as principais franquias de josogs - GTA, Call of Duty, The elder Scrolls, Fifa e Red dead Redemption
+
+
+df_filtrado <- df_filtrado %>%
+  mutate(franquia = case_when(
+    str_detect(title, "GTA|Grand Theft Auto") ~ "GTA",
+    str_detect(title, "Call of Duty") ~ "Call of Duty",
+    str_detect(title, "Elder Scrolls|Skyrim|Oblivion|Morrowind") ~ "The Elder Scrolls",
+    str_detect(title, "FIFA") ~ "FIFA",
+    str_detect(title, "Red Dead") ~ "Red Dead Redemption",
+    TRUE ~ "Outros"
+  ))
+
+# Análise das franquias
+df_franquias <- df_filtrado %>%
+  filter(franquia != "Outros") %>%
+  group_by(franquia) %>%
+  summarise(
+    quantidade_de_jogos = n_distinct(title), # jogos únicos, ignorando plataforma
+    vendas_totais = sum(total_sales, na.rm = TRUE),
+    media_nota = mean(critic_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+# Base de dados com resumo das franquias
+df_franquias <- df_filtrado %>%
+  filter(franquia != "Outros") %>%
+  group_by(franquia) %>%
+  summarise(
+    quantidade_de_jogos = n_distinct(title),
+    vendas_totais = sum(total_sales, na.rm = TRUE),
+    media_nota = mean(critic_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+```{r}
+
+# ==========================
+# 1. Vendas totais por franquia
+# ==========================
+ggplot(df_franquias, aes(x = reorder(franquia, vendas_totais), y = vendas_totais)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Vendas Totais por Franquia",
+    x = "Franquia",
+    y = "Vendas Totais (em milhões)"
+  ) +
+  coord_flip() +
+  theme_minimal()
+```
+
+```{r}
+
+# ==========================
+# 2. Quantidade de jogos por franquia
+# ==========================
+ggplot(df_franquias, aes(x = reorder(franquia, quantidade_de_jogos), y = quantidade_de_jogos)) +
+  geom_col(fill = "darkorange") +
+  labs(
+    title = "Quantidade de Jogos por Franquia",
+    x = "Franquia",
+    y = "Quantidade de Jogos"
+  ) +
+  coord_flip() +
+  theme_minimal()
+```
+```{r}
+
+# ==========================
+# 3. Média das notas (Meta Score) por franquia
+# ==========================
+ggplot(df_franquias, aes(x = reorder(franquia, media_nota), y = media_nota)) +
+  geom_col(fill = "forestgreen") +
+  labs(
+    title = "Média das Notas (Meta Score) por Franquia",
+    x = "Franquia",
+    y = "Média das Notas"
+  ) +
+  coord_flip() +
+  theme_minimal()
+```
+
+```{r}
+
+# ==========================
+# 4. Distribuição das vendas por jogo dentro de cada franquia
+# ==========================
+
+df_jogos_franquia <- df_filtrado %>%
+  filter(franquia != "Outros") %>%
+  group_by(franquia, title) %>%
+  summarise(
+    vendas_globais = sum(total_sales, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(df_jogos_franquia, aes(x = reorder(title, vendas_globais), y = vendas_globais, fill = franquia)) +
+  geom_col() +
+  facet_wrap(~franquia, scales = "free") +
+  coord_flip() +
+  labs(
+    title = "Distribuição das Vendas por Jogo Dentro de Cada Franquia",
+    x = "Jogo",
+    y = "Vendas Globais (em milhões)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
 
 Fazer uma análise dos principais títulos e franquias
 
 ```{r}
-ggplot(df, aes(x = fct_infreq(console))) +
-  geom_bar(width = 0.5, color = 'blue', fill = 'blue') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "Consoles", y = "Quantidade de jogos", title = "Quantidade de jogos por plataforma")
-```
-```{r}
-### Começando a fazer um gráfico de vendas por cada video-game - para focarmos as análises somente para os videogmes que são mais relevantes
-df_plataforma <- df %>% 
-  group_by(Platform) %>% 
-  summarise(Total_sales = sum(Global_Sales)) %>% 
-  arrange(desc(Total_sales))
-
-ggplot(df_plataforma, aes(x = reorder(Platform, -Total_sales), y = Total_sales)) +
-  geom_col(fill = 'blue') +
-  labs(
-    x = "Videogame",
-    y = "Vendas Totais (em milhões)",
-    title = "Vendas Totais por Videogame"
-  ) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+df
 ```
 
-```{r}
-### Dropando todos os consoles que tem vendas muito baixas ou, são muito antigos e poucos conhecidos e relevanes para o mercado de games (essa remoção foi feita tando pela baixa de vendas e pelo conhecimento empírico do grupo sobre video games para dizer que essse consoles não são tão importantes nem relevantes para essa análise.)
 
-df <- df %>% filter(!Platform %in% c("2600", "PSV", "DC", "SCD", "NG", "WS", "TG16", "3DO", "GG", "PCFX", "GEN"))
-
-df_plataforma <- df %>% 
-  group_by(Platform) %>% 
-  summarise(Total_sales = sum(Global_Sales)) %>% 
-  arrange(desc(Total_sales))
-
-ggplot(df_plataforma, aes(x = reorder(Platform, -Total_sales), y = Total_sales)) +
-  geom_col(fill = 'blue') +
-  labs(
-    x = "Videogame",
-    y = "Vendas Totais (em milhões)",
-    title = "Vendas Totais por Videogame"
-  ) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 ```{r}
 ### Separando o dataset por gênero de jogos
 
 df %>% 
-  count(Genre) %>% 
-  ggplot(aes(x = Genre, y = n)) +   
-  geom_col(fill = "steelblue") +    
+  count(genre) %>% 
+  ggplot(aes(x = fct_reorder(genre, n, .desc = TRUE), y = n)) +   
+  geom_col(color = "steelblue",fill = "lightblue") +    
   labs(title = "Quantidade de jogos por gênero",
        x = "Gênero",
        y = "Quantidade de jogos") +
@@ -158,24 +233,13 @@ df %>%
 
 ```
 
-
-```{r}
-df
-ggplot(data = df, 
-       mapping = aes(x = Year, y = Global_Sales)) +
-  geom_boxplot(size = 3)
-
-ggplot(df, aes(Platform == "Wii", Total_sales)) +
-  geom_point() +
-  geom_line()
-```
 ```{r}
 df %>% 
-  filter(Platform == "Wii") %>% 
-  count(Genre) %>% 
+  filter(console == "Wii") %>% 
+  count(genre) %>% 
   arrange(desc(n)) %>% 
-  mutate(Genre = factor(Genre, levels = Genre)) %>% 
-  ggplot(aes(x = Genre, y = n)) +
+  mutate(Genre = factor(genre, levels = genre)) %>% 
+  ggplot(aes(x = genre, y = n)) +
   geom_bar(stat = "identity") +
   labs(title = "Quantidade de Jogos por Gênero no Wii",
        x = "Gênero", y = "Quantidade") +
