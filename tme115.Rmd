@@ -1,0 +1,579 @@
+---
+title: "Entendendo a indústria de games com dados"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+Esse é o relatório feito pelo grupo composto por Diego Pires Silva (239489), Henry Koiti Honda () e Fernanda Soares marreiro para a disciplica de **ME115** oferecida pela professora Tatiana Benaglia. Nesse relatório, foi feita uma análise do dataset "Video Games Sales - 2024" encontrado no Kaggle (como foi orientado para a realização do trabalho). 
+
+
+A indústria dos games configura-se, atualmente, como um dos setores mais expressivos e dinâmicos da economia global, destacando-se não apenas pelo volume financeiro que movimenta, mas também por sua relevância cultural, social e tecnológica. Desde sua consolidação na década de 1970, com o surgimento dos primeiros consoles domésticos, como o Atari 2600, este mercado tem experimentado um crescimento contínuo, impulsionado pelo avanço tecnológico (principalmente do Hardware), pela diversificação dos perfis de consumidores e pela constante inovação em produtos e serviços.
+
+A trajetória evolutiva dos videogames pode ser compreendida por meio das principais gerações de consoles, cada uma representando marcos significativos no desenvolvimento da indústria. As primeiras gerações foram caracterizadas por gráficos visuais simplificados, experiências de jogo limitadas e uma proposta de entretenimento doméstico inovadora para a época. Na sequência, com o advento de consoles como o Nintendo Entertainment System (NES) e o Sega Genesis, houve uma expansão significativa da base de usuários, além de avanços na qualidade dos gráficos, trilhas sonoras e na complexidade dos jogos.
+
+O mercado continuou sua transformação ao longo das gerações seguintes, com o surgimento de plataformas como PlayStation, Xbox e Nintendo 64, que introduziram gráficos tridimensionais, armazenamento em mídia ótica e experiências de jogo mais imersivas. Posteriormente, a indústria expandiu-se para além dos consoles físicos, incorporando plataformas móveis, computadores e, mais recentemente, serviços de streaming e jogos em nuvem. As gerações mais atuais, representadas pelo PlayStation 5, Xbox Series X|S e Nintendo Switch, evidenciam uma convergência entre desempenho gráfico, processamento avançado, conectividade e integração com serviços digitais, além da crescente adoção de tecnologias como realidade virtual (VR) e realidade aumentada (AR).
+
+Diante desse panorama de constante transformação, torna-se fundamental compreender os padrões que regem o comportamento do mercado de games, especialmente no que tange às dinâmicas de vendas, preferências de gênero, evolução das plataformas e a atuação de estúdios e publishers (empresas desenvolvedoras e distribuidoras de jogos). Este trabalho tem como objetivo realizar uma análise descritiva e exploratória da indústria de videogames, utilizando como base um conjunto de dados que abrange informações sobre vendas globais, plataformas, gêneros e publishers, totalizando milhares de registros e variáveis.
+
+A partir da exploração desse dataset, busca-se compreender não apenas os títulos mais bem-sucedidos em termos de vendas, mas também traçar a evolução do mercado ao longo do tempo, identificando tendências, ciclos de crescimento e declínio, além da participação de mercado das principais empresas desenvolvedoras. Adicionalmente, serão analisadas as correlações entre as vendas em diferentes regiões do mundo, bem como o comportamento específico dos consumidores de acordo com o gênero dos jogos e as características das plataformas.
+
+Dessa forma, este relatório pretende oferecer uma visão abrangente sobre a evolução da indústria de games, contribuindo para a compreensão das dinâmicas mercadológicas que moldaram, e continuam moldando, um dos setores mais inovadores e relevantes da indústria contemporânea e que vem, a cada ano, ganhando um espaço maior na indústria do entretenimento principalmente visando a indústria cinematográfica.
+
+## Sobre o nosso Dataset
+
+O dataset utilizado para esta análise é o "Video games sales - 2024" encontrado na plataforma Kagle que é coletado a partir de um dos principais fornecedores de dados sobre video games, o https://www.vgchartz.com. Nesse conjunto de dados, estão sendo contabilizado mais de 64.000 lançamento de jogos entre os anos de 1980 a 2024 em diferentes plataformas (consoles). Nesse Dataset, encontraremos colunas como no dicionário:
+
+Name: Nome do jogo.
+Platform: Plataforma de lançamento (ex: PS2, X360).
+Year_of_Release: Ano de lançamento.
+Genre: Gênero do jogo (ex: Action, Sports).
+Publisher: Empresa que publicou o jogo.
+NA_Sales: Vendas na América do Norte (em milhões de unidades).
+EU_Sales: Vendas na Europa (em milhões de unidades).
+JP_Sales: Vendas no Japão (em milhões de unidades).
+Other_Sales: Vendas em outras regiões (em milhões de unidades).
+Global_Sales: Vendas globais totais (em milhões de unidades).
+critic_score: Nota fornecida por veículos de comunicação.
+
+
+
+```{r, echo = FALSE, warning = FALSE, include = FALSE}
+### Importar bibliotecas
+getwd()
+#setwd("C:\\Users\\rseit\\OneDrive\\Área de Trabalho\\trabalhoR")
+
+setwd("C:\\Users\\dipis\\OneDrive\\Documentos\\Trabalho R")
+
+
+
+library(renv)
+library(ggplot2)
+library(tidyr)
+library(readr)
+library(forcats)
+library(dplyr)
+library(stringr)
+library(waffle)
+library(tinytex)
+
+```
+
+```{r, echo = FALSE, warning = FALSE}
+### Vai colar o repositório do github que está o trabalho do R
+
+#clone("https://github.com/diegopiresss/Trabalho---video_games_sales", "Trabalho R")
+```
+
+```{r, echo=FALSE, include=FALSE}
+#df <- read_csv("C:\\Users\\rseit\\OneDrive\\Área de Trabalho\\dados_games_a.csv")
+
+df<- read_csv("dados_games_a.csv")
+
+df <- df %>% select(-img)
+
+df
+
+#unique(df$console)    
+#unique(df$genre)    
+#unique(df$publisher)       não deixar esse unique, muito grande, usei só para ver o que ia ter que dropar
+#unique(df$developer)
+
+```
+
+
+```{r, echo = FALSE, include = FALSE, warning = FALSE}
+### Começando a fazer uma limpeza básica, removendo os consoles que tem menos do que 200 jogos
+
+df <- df %>% filter(!console %in% c("SCD", "3D0", "GG", "MS", "PCE", "WW", "2600", "DC", "VC", "GC", "OSX", "And", "All","DSiW"))
+
+df_filtrado <- df %>%
+  group_by(console) %>%
+  filter(n() >= 200) %>%
+  ungroup()
+
+df_filtrado
+
+ggplot(df_filtrado, aes(x = fct_infreq(console))) +
+  geom_bar(width = 0.5, color = 'steelblue', fill = 'lightblue') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Consoles", y = "Quantidade de jogos", title = "Quantidade de jogos por plataforma")
+```
+
+```{r,echo = FALSE, warning = FALSE, include = FALSE}
+## Gráfico para saber quais foram os 20 jogos mais vendidos
+
+df_resumido <- df %>%
+  group_by(title) %>%
+  summarise(
+    total_sales = sum(total_sales, na.rm = TRUE),
+    publisher = first(publisher)
+  ) %>%
+  arrange(desc(total_sales))
+
+## Filtrar os jogos por colunas
+
+df %>% filter(title == "Grand Theft Auto V")
+
+top20jogos <- df %>% group_by(title) %>%  summarise(total_vendas_titulo = sum(total_sales, na.rm = TRUE)) %>% arrange(desc(total_vendas_titulo)) %>% head(20)
+
+top20jogos
+
+top20jogos$title <- factor(top20jogos$title, levels = top20jogos$title)
+
+```
+
+```{r, echo = FALSE, warning = FALSE, fig.width=5, fig.height=4, out.width='80%', fig.align='center'}
+
+ggplot(data = top20jogos, aes(x= title, y = total_vendas_titulo)) +
+  geom_col(color = "steelblue", fill = "lightblue") +
+  labs(title = '20 Jogos mais vendidos - Gráfico 1', x = 'Título', y = 'Vendas (em milhões)') +
+  coord_flip() +
+  theme_minimal()
+
+```
+
+Texto: 
+
+O "Gráfico 1: 20 Jogos mais vendidos" revela um panorama claro das vendas em milhões de títulos de games. Em destaque, "Grand Theft Auto V" domina inquestionavelmente, superando 60 milhões de unidades, impulsionado por seu vasto mundo aberto e robusto modo online. A franquia "Call of Duty" exibe forte presença com múltiplos títulos, refletindo a popularidade de sua jogabilidade FPS frenética e multiplayer competitivo. "Minecraft" destaca-se pela liberdade criativa em seu mundo sandbox, atraindo todas as idades. A série "FIFA" demonstra a força dos simuladores de futebol autênticos com licenças oficiais e o viciante "Ultimate Team". Outros sucessos como "The Elder Scrolls V: Skyrim", um RPG de mundo aberto imersivo, e "Red Dead Redemption 2", um épico faroeste detalhado, complementam a lista. A maioria dos títulos restantes concentra-se na faixa de 15 a 35 milhões de vendas. O gráfico de barras horizontais é eficaz, facilitando a identificação dos líderes e a análise do mercado.
+
+
+```{r, echo = FALSE, warning = FALSE, fig.width=5, fig.height=4, out.width='100%', fig.align='center'}
+### Analisando as principais franquias de josogs - GTA, Call of Duty, The elder Scrolls, Fifa e Red dead Redemption
+
+
+df_filtrado <- df_filtrado %>%
+  mutate(franquia = case_when(
+    str_detect(title, "GTA|Grand Theft Auto") ~ "GTA",
+    str_detect(title, "Call of Duty") ~ "Call of Duty",
+    str_detect(title, "Elder Scrolls|Skyrim|Oblivion|Morrowind") ~ "The Elder Scrolls",
+    str_detect(title, "FIFA") ~ "FIFA",
+    str_detect(title, "Red Dead") ~ "Red Dead Redemption",
+    TRUE ~ "Outros"
+  ))
+
+# Análise das franquias
+df_franquias <- df_filtrado %>%
+  filter(franquia != "Outros") %>%
+  group_by(franquia) %>%
+  summarise(
+    quantidade_de_jogos = n_distinct(title), # jogos únicos, ignorando plataforma
+    vendas_totais = sum(total_sales, na.rm = TRUE),
+    media_nota = mean(critic_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+# Base de dados com resumo das franquias
+df_franquias <- df_filtrado %>%
+  filter(franquia != "Outros") %>%
+  group_by(franquia) %>%
+  summarise(
+    quantidade_de_jogos = n_distinct(title),
+    vendas_totais = sum(total_sales, na.rm = TRUE),
+    media_nota = mean(critic_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+df_count <- df_filtrado %>%
+  filter(franquia != "Outros") %>%
+  count(franquia, name = "quantidade_de_jogos")
+
+max_qtd <- max(df_count$quantidade_de_jogos)
+
+ggplot(df_count, aes(x = quantidade_de_jogos, y = reorder(franquia, quantidade_de_jogos))) +
+  geom_segment(aes(x = 0, xend = quantidade_de_jogos, yend = franquia), color = "steelblue", linewidth = 2) +
+  geom_point(color = "steelblue", size = 4) +
+  geom_text(aes(label = quantidade_de_jogos), hjust = -0.3, size = 4, color = "grey") +
+  labs(
+    title = "Jogos por franquia - Gráfico 2",
+    x = "Quantidade de Jogos",
+    y = "Franquia"
+  ) +
+  theme_minimal() +
+  coord_cartesian(xlim = c(0, max_qtd * 1.2))
+
+
+
+```
+O gráfico "Quantidade de Jogos por Franquia" revela as estratégias de lançamento de algumas das maiores séries da indústria. A franquia **FIFA** lidera disparado com 214 jogos, refletindo seu modelo de lançamentos anuais e a vasta gama de títulos. Em seguida, **Call of Duty** mantém uma frequência alta com 134 jogos, consolidando sua presença no mercado. **The Elder Scrolls** ocupa a terceira posição com 88 títulos, demonstrando uma produção considerável ao longo do tempo. Já **GTA**, com 71 jogos, e **Red Dead Redemption**, com apenas 22, mostram uma abordagem distinta. Ambas as franquias focam em lançamentos menos frequentes, mas de altíssima qualidade e escala, o que explica seu imenso sucesso de vendas por título, em contraste com o volume de outras séries. O gráfico de barras horizontais organiza essas informações de forma clara, permitindo comparar o ritmo de produção de cada franquia.
+
+
+
+
+```{r, echo = FALSE, warning = FALSE, fig.width=5, fig.height=4, out.width='49%', fig.align='center', fig.show = 'hold'}
+### Gráficos de vendas totais por franquia
+ggplot(df_franquias, aes(x = franquia, y = vendas_totais)) +
+  geom_col(fill = "lightblue", color = "steelblue") +
+  labs(
+    title = "Vendas Totais por Franquia - Gráfico 3",
+    x = "Franquia",
+    y = "Vendas Totais (em milhões)"
+  ) +
+  theme_minimal()
+
+
+###############
+
+
+df_franquias <- df_franquias %>%  mutate(vendas_por_jogo = vendas_totais / quantidade_de_jogos)
+
+
+# 3. Criar o gráfico de dispersão com o tamanho dos pontos mapeado para 'vendas_por_jogo'
+ggplot(df_franquias, aes(x = vendas_totais, y = quantidade_de_jogos, color = franquia)) +
+  geom_point(aes(size = vendas_por_jogo), # Mapeia o tamanho do ponto para vendas_por_jogo
+             alpha = 0.8) +             # Transparência para evitar sobreposição
+  #geom_text(aes(label = franquia),       # Adiciona o rótulo do nome da franquia
+            #nudge_y = 10,                 # Ajusta a posição vertical do texto
+            #size = 3.5,                   # Tamanho da fonte do rótulo
+            #color = "black") +            # Cor do texto para contraste
+  labs(
+    title = "Vendas Totais e quantidade de jogos - Gráfico 4",
+    x = "Vendas Totais da Franquia (em milhões)",
+    y = "Quantidade de Jogos Lançados",
+    color = "Franquia",                    # Título da legenda de cores
+    size = "Vendas por Jogo\n(milhões/título)" # Título da legenda de tamanho
+  ) +
+  theme_minimal() +
+  theme(legend.position = "right") # Posiciona a legenda à direita para melhor visualização
+    
+```
+```{r, echo = FALSE, warning = FALSE, fig.width=5, fig.height=4, out.width='50%', fig.align='left'}
+   
+```
+
+Texto: A próxima análise a ser feita é sobre uma das métricas de qualidades que temos para jogos, agora mais especificamente para franquias. Uma franquia de jogos, são, jogos que seguem o mesmo estilo e gênero (geralmente separados por novas narrativas, mecanismos de jogos e evoluções técnológicas) e que são lançados em sequência. Um dos principais exemplos, é o FIFA (o principal jogo que simula um futebol) em que, a cada ano, um novo FIFA é lançado para se adequar a uma nova temporada de futebol que está se iniciando no mundo. Ou seja, teremos como exemplo: "FIFA 19", "FIFA 20", "FIFA 21" e assim por diante. Para analisarmos essa qualidade dos jogos, estaremos olhando para a métrica de vendas por jogo lançado da franquia em quem, tentaremos descobrir se uma franquia só está no topo de jogos mais vendidos pois foram lançados muitos jogos para ela, mesmo não contendo muita qualidade ou popularidade. Como visto no gráfico 3 Call of Duty é a franquia com mais jogos vendidos no mundo, passando de 300 milhões de unidades vendidas porém, contem muitos lançamentos, totalizando 134 (gráfico 2). Mesmo assim, é um dos jogos que tem a maior quantidade de jogos vendidos por lançamento. O oposto acontece com GTA, que mesmo não tendo uma quantidade tão grande de jogos lançados (quase a metate do Call of Duty) consegue ter muitas vendas, o que demonstra a grande popularidade e qualidade da franquia. Por último, a última franquia notável é The Elder Scrolls. Que mesmo tendo muitos jogos lançados, totalizando 88, não consegue chegar na mesma quantidade de vendas do que os outros jogos, demonstrando uma popularidade menor do que os outros exemplos demonstrados nesse gráficos.
+
+
+```{r, echo = FALSE, warning = FALSE}
+### Média da nota
+ggplot(df_franquias, aes(x = reorder(franquia, media_nota), y = media_nota)) +
+  geom_col(fill = "lightblue", color = "steelblue") +
+  labs(
+    title = "Média das Notas (Meta Score) por Franquia",
+    x = "Franquia",
+    y = "Média das Notas"
+  ) +
+  theme_minimal()
+```
+TEXTO: Após a análise de qualidade de jogos por vendas por lançamento, vale também análisarmos a qualidade dos jogos por nota fornecida pela crítica, mais especificamente por veículos de comunicação. Dessa forma, vemos que franquias que contém uma grande lançamentos e mesmo uma grande quantidade de vendas FIFA e Call of Duty, tem uma nota mais baixa fornecida pela crítica. Isso se deve pela alta quantidade de lançamentos que, em ambos os casos, são anuais (ou seja, todos os anos é lançado um novo jogo da franquia FIFA e, às vezes, mais de um da Franquia Call of duty). Isso reduiz drásticamente o tempo de desenvolivmento dos jogos, o que resulta em que essas franquias lançam jogos muitos semelhantes todos os anos, o que acaba resultando em uma falta de inovação, pouca evolução entre os jogos (os jogadores sentem que estão jogando a mesma coisa), portanto, o efeito disso são notas mais baixas fornecidas pela crítica em relação aos outros jogos: 7,5 para FIFA e 7,7 para o Call of Duty. Porém, o mesmo não pode se falar de franquias como GTA e Red Dead Redemption. Ambos são jogos desenvolvidos pela "Rockstar" (o principal estúdio de desenvolvimento de jogos da atualidade) e que, por contarem com menos lançamentos que as outras franquias, conseguem ter mais qualidade nos jogos, trazer uma espectativa maior sobre os mesmos (devido aos lançamentos espaçados) o que resulta em jogos que são considerados "O estado da arte" de jogos por jogadores em todo o mundo.
+
+
+## Analisando jogos por gênero
+```{r, echo = FALSE, warning = FALSE}
+### Separando o dataset por gênero de jogos
+
+df %>% filter(genre != "Misc") %>% 
+  count(genre) %>% 
+  ggplot(aes(x = fct_reorder(genre, n, .desc = TRUE), y = n)) +   
+  geom_col(color = "steelblue",fill = "lightblue") +    
+  labs(title = "Quantidade de jogos por gênero",
+       x = "Gênero",
+       y = "Quantidade de jogos") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+O Gráfico de Barras "Quantidade de jogos por gênero" oferece uma visão detalhada da distribuição da produção de títulos no universo dos videogames, categorizando-os por seu gênero principal. A ordenação decrescente das barras facilita a identificação dos segmentos mais prolíficos e, em contrapartida, daqueles com menor volume de lançamentos no dataset analisado.
+
+Conforme o gráfico, o gênero "Action" (Ação) emerge como o líder incontestável em número de títulos, com mais de 7.000 jogos. Isso reafirma sua posição como um pilar fundamental da indústria, abrangendo uma vasta gama de subgêneros e atraindo uma ampla base de desenvolvedores.
+
+Em seguida, "Adventure" (Aventura) e "Role-Playing" (RPG) mantêm suas posições de destaque, com aproximadamente 5.800 e 5.200 títulos, respectivamente. Estes gêneros continuam a ser centros de produção de conteúdo, impulsionados pela demanda por narrativas ricas, exploração e sistemas de progressão de personagens.
+
+Um grupo significativo de gêneros, incluindo "Sports" (Esportes), "Shooter" (Tiro), "Platform" (Plataforma), "Strategy" (Estratégia), "Racing" (Corrida), "Puzzle" (Quebra-cabeça) e "Simulation" (Simulação), forma o segundo escalão em volume de lançamentos. Cada um desses gêneros demonstra uma base sólida de títulos, indicando um ecossistema saudável e diversificado de produção.
+
+No outro extremo do espectro, gêneros como "Fighting" (Luta), "Action-Adventure" (Ação-Aventura), "Visual Novel", "Music" (Música), "Party" (Festa), "MMO", "Education" (Educacional), "Board Game" (Jogo de Tabuleiro) e "Sandbox" exibem as menores quantidades de títulos. A baixa representação do "Sandbox" é notável, sugerindo que, apesar da popularidade massiva de alguns jogos individuais (como Minecraft), o volume total de títulos classificados estritamente nesse gênero é reduzido.
+
+Em suma, o gráfico realça a liderança proeminente de "Ação", "Aventura" e "RPG" em termos de volume de títulos, ao mesmo tempo em que evidencia a grande diversidade de gêneros que compõem a paisagem da produção de jogos.
+
+
+
+```{r, echo = FALSE, warning = FALSE}
+### Analisar sobre as principais plataformas mais vendidas
+df_console_vendas <- df %>%
+  
+  group_by(console) %>%
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE)) %>%
+  filter(vendas_totais > 25)
+
+ggplot(df_console_vendas, aes(x = reorder(console, vendas_totais), y = vendas_totais)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Vendas Totais por Plataforma",
+    x = "Plataforma",
+    y = "Vendas (milhões)"
+  ) +
+  theme_minimal()
+
+
+```
+
+As vendas totais por plataforma reveladas no gráfico mostram o domínio incontestável do PlayStation 2 (PS2), que superou as 1000 milhões de unidades vendidas, consolidando-se como um dos maiores sucessos da história dos videogames. Logo atrás, em uma disputa acirrada, vêm o Xbox 360 e o PlayStation 3 (PS3), ambos com vendas robustas na casa dos 800 milhões. A família PlayStation continua a demonstrar sua força com o PS original e o PlayStation 4 (PS4) também apresentando vendas elevadas, ultrapassando os 500 milhões de unidades. A Nintendo, por sua vez, garantiu sua posição com o Wii e o DS, que se destacaram por suas propostas inovadoras e alcançaram vendas expressivas, próximas aos 500 milhões. Em um patamar intermediário, encontramos o Xbox One, PSP, Xbox e GBA, com vendas que variam entre 200 e 300 milhões, evidenciando a relevância dos mercados de console e portátil em suas respectivas épocas. Por fim, plataformas como PC, 3DS, N64, SNES, PSV, NES, NS, WiiU e SAT registram vendas significativamente menores no contexto dos dados apresentados. É importante notar que a representação do PC neste tipo de gráfico pode subestimar seu impacto real, dado que as vendas de hardware são difusas e a distribuição de jogos é predominantemente digital, e que consoles mais antigos, apesar de seu legado histórico, naturalmente apresentam volumes de vendas totais menores em comparação com as gerações mais recentes, que se beneficiaram de um mercado maior e mais globalizado. Além disso, a ausência de plataformas mais recentes, como o Nintendo Switch, impede uma visão completa do panorama atual do mercado.
+
+```{r, echo = FALSE, warning = FALSE}
+### Começando a análise de consoles com mais vendas
+
+df_vendaspgen <- df_filtrado %>% 
+  group_by(genre) %>% 
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE))
+
+ggplot(df_vendaspgen, aes(x = reorder(genre,vendas_totais), y = vendas_totais)) +
+         geom_col(fill = "steelblue") +
+         coord_flip() +
+         labs(title = "Vendas por gênero de jogo",
+              x = "Gênero",
+              y = "Vendas (em milhões)"
+              )+ theme_minimal()
+         
+        
+        
+
+ggplot(df_console_vendas, aes(x = reorder(console, vendas_totais), y = vendas_totais)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Vendas Totais por Plataforma",
+    x = "Plataforma",
+    y = "Vendas (milhões)"
+  ) +
+  theme_minimal()
+
+  
+```
+As vendas totais por plataforma reveladas no gráfico mostram o domínio incontestável do PlayStation 2 (PS2), que superou as 1000 milhões de unidades vendidas, consolidando-se como um dos maiores sucessos da história dos videogames. Logo atrás, em uma disputa acirrada, vêm o Xbox 360 e o PlayStation 3 (PS3), ambos com vendas robustas na casa dos 800 milhões. A família PlayStation continua a demonstrar sua força com o PS original e o PlayStation 4 (PS4) também apresentando vendas elevadas, ultrapassando os 500 milhões de unidades. A Nintendo, por sua vez, garantiu sua posição com o Wii e o DS, que se destacaram por suas propostas inovadoras e alcançaram vendas expressivas, próximas aos 500 milhões. Em um patamar intermediário, encontramos o Xbox One, PSP, Xbox e GBA, com vendas que variam entre 200 e 300 milhões, evidenciando a relevância dos mercados de console e portátil em suas respectivas épocas. Por fim, plataformas como PC, 3DS, N64, SNES, PSV, NES, NS, WiiU e SAT registram vendas significativamente menores no contexto dos dados apresentados. É importante notar que a representação do PC neste tipo de gráfico pode subestimar seu impacto real, dado que as vendas de hardware são difusas e a distribuição de jogos é predominantemente digital, e que consoles mais antigos, apesar de seu legado histórico, naturalmente apresentam volumes de vendas totais menores em comparação com as gerações mais recentes, que se beneficiaram de um mercado maior e mais globalizado. Além disso, a ausência de plataformas mais recentes, como o Nintendo Switch, impede uma visão completa do panorama atual do mercado.
+
+```{r, echo = FALSE, warning = FALSE}
+df_publisher <- df_filtrado %>% 
+  group_by(publisher) %>%
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE)) %>% 
+  filter(vendas_totais >= 50)
+
+ggplot(df_publisher, aes(x = reorder(publisher, vendas_totais), y = vendas_totais)) +
+         geom_col(color = "steelblue", fill = "lightblue") +
+         coord_flip() +
+         labs(title ="Publishers com mais de 50 milhões de vendas",
+              x = "Publisher",
+              y = "Vendas (em milhões)")
+
+       
+
+```
+O gráfico de vendas de publishers acima de 50 milhões revela um cenário dominado por poucos gigantes, com a Activision e a Electronic Arts (EA) liderando o caminho de forma incontestável, ambas superando os 500 milhões de vendas, demonstrando sua capacidade de criar e sustentar franquias de sucesso massivo. Curiosamente, a EA Sports aparece como uma força separada, com vendas que por si só se aproximam dos 450 milhões, indicando a vasta dimensão do mercado de jogos esportivos dentro do universo da EA. Em um segundo patamar de vendas sólidas, entre 300 e 400 milhões, encontram-se a Ubisoft, conhecida por seus vastos mundos abertos, e a Sony Computer Entertainment, que representa os títulos essenciais para as plataformas PlayStation. Descendo um pouco, na faixa dos 200 milhões, notamos a presença da THQ e, de forma significativa, da Rockstar Games, cujo volume de vendas, apesar de um catálogo mais focado, atesta o impacto e a consistência de franquias icônicas como *Grand Theft Auto*. O terço médio, com vendas entre 100 e 200 milhões, é composto por nomes como Konami, Sega, Capcom e Nintendo, esta última destacando-se por sua intrínseca ligação com o sucesso de suas plataformas e IPs. Nesse mesmo grupo, LucasArts e Bethesda Softworks mostram a relevância de nichos específicos e a capacidade de criar experiências imersivas. Por fim, uma base ampla de publishers, variando entre 50 e 100 milhões em vendas, inclui empresas como Warner Bros. Interactive Entertainment, Disney Interactive Studios, 2K Sports, Square Enix, Namco, entre outros, evidenciando a diversidade da indústria, embora sem o mesmo volume dos líderes; a posição da Microsoft Game Studios e Microsoft Studios nesse segmento, abaixo dos concorrentes diretos, sugere as nuances e as flutuações nas estratégias de jogos *first-party* da Microsoft ao longo do tempo. Em suma, o gráfico não só ilustra o poder das franquias e a importância de modelos de negócios eficazes para a sustentabilidade dos publishers, mas também reflete a contínua consolidação da indústria de jogos em torno de um número menor de grandes players globais, apesar da variedade de nomes presentes.
+
+
+
+FAZER DEPOIS! INÍCIO DA ANÁLISE TEMPORAL, OU SEJA, IREMOS COMEÇAR A ANALISAR COMO OS MERCADOS FUNCINA AO DECORRER DO TEMPO
+
+```{r, warning = FALSE}
+df_filtrado <- df_filtrado %>% select(!last_update) %>% mutate(year = lubridate:: year(release_date)) # só removendo a coluna last_update para podermos trabalhar melhor com nossos dados
+
+df_vendaspano <- df_filtrado %>% 
+    group_by(year) %>% 
+  summarise(vendas_totais = sum(total_sales, na.rm = TRUE))
+
+ggplot(df_vendaspano, aes(x = year, y = vendas_totais)) +
+  geom_line(linewidth = 1.5, color = "steelblue") +
+  geom_point(size = 3) +
+  theme_minimal()
+```
+
+```{r, echo = FALSE, warning = FALSE}
+df_vendas_regioes <- df %>% 
+  select(na_sales, pal_sales, jp_sales)
+
+matriz_correlacao <- cor(df_vendas_regioes, use = "pairwise.complete.obs")
+
+
+matriz_correlacao_longa <- as.data.frame(matriz_correlacao) %>%
+  tibble::rownames_to_column(var = "Var1") %>%
+  pivot_longer(
+    cols = -Var1,
+    names_to = "Var2",
+    values_to = "value"
+  )
+```
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(matriz_correlacao_longa, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), color = "white", size = 5) +
+  scale_fill_gradient2(
+    low = "blue", 
+    high = "red", 
+    mid = "white", 
+    midpoint = 0, 
+    limit = c(-1, 1), 
+    name = "Correlação"
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Correlação de Vendas entre Regioes",
+    x = "", y = ""
+  )
+```
+Este gráfico de matriz de correlação nos permite visualizar as relações entre as vendas de jogos em três grandes regiões: Japão (`jp_sales`), América do Norte (`na_sales`) e os territórios PAL (`pal_sales`), que englobam principalmente a Europa e a Austrália. A leitura dos valores revela que as vendas no Japão (`jp_sales`) apresentam uma correlação extremamente fraca, de apenas 0.06, com as vendas na América do Norte (`na_sales`), e uma correlação igualmente baixa, de 0.13, com as vendas nas regiões PAL (`pal_sales`). Isso indica que o mercado japonês opera com uma dinâmica muito particular, com pouca ou nenhuma dependência das tendências de vendas ocidentais, provavelmente devido a profundas diferenças culturais, preferências de jogos e estratégias de mercado localizadas. Em contrapartida, observa-se uma correlação forte e positiva de 0.69 entre as vendas na América do Norte (`na_sales`) e nas regiões PAL (`pal_sales`). Este alto grau de correlação sugere que esses dois mercados ocidentais são bastante alinhados, com as tendências de vendas se movendo frequentemente na mesma direção, o que pode ser atribuído a similaridades demográficas, culturais e a estratégias de lançamento globalizadas que os englobam. Em termos práticos, esta análise sugere que, enquanto as estratégias de marketing e lançamento para a América do Norte e as regiões PAL podem ser coordenadas devido à sua forte interdependência, o mercado japonês exige uma abordagem mais customizada e independente, reconhecendo suas próprias particularidades.
+```{r, echo = FALSE, warning = FALSE}
+ggplot(df_vendas_regioes, aes(x = na_sales, y = pal_sales)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(
+    title = "Vendas: America do Norte vs. Europa",
+    x = "Vendas na America do Norte (milhoes)",
+    y = "Vendas na Europa (milhoes)"
+  ) +
+  theme_minimal()
+
+################
+
+ggplot(df_vendas_regioes, aes(x = na_sales, y = jp_sales)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(
+    title = "Vendas: America do Norte vs. Japao",
+    x = "Vendas na America do Norte (milhoes)",
+    y = "Vendas no Japao (milhoes)"
+  ) +
+  theme_minimal()
+```
+
+Análise Comparativa dos Gráficos "Vendas: América do Norte vs. Europa" e "Vendas: América do Norte vs. Japão":
+
+1. Vendas: América do Norte vs. Europa (Gráfico Superior):
+
+    Relação Visual Forte: O gráfico mostra uma forte correlação positiva entre as vendas na América do Norte e na Europa. Os pontos de dados tendem a seguir uma linha reta ascendente, indicando que, na maioria dos casos, quando um jogo vende bem na América do Norte, ele também tende a vender bem na Europa, e vice-versa. A linha de regressão vermelha tem uma inclinação acentuada e os pontos estão razoavelmente próximos a ela, confirmando a alta correlação (anteriormente vista como 0.69).
+    Escala de Vendas Similar: As escalas nos eixos X (América do Norte) e Y (Europa) são bastante similares (ambas até cerca de 10 milhões). Isso sugere que os volumes de vendas para jogos individuais são comparáveis entre essas duas regiões principais.
+    Outliers Simétricos: Embora existam alguns pontos dispersos (outliers), eles não distorcem a tendência geral e aparecem de forma mais equilibrada em relação à linha de regressão, indicando que a regra geral se aplica à maioria dos jogos, mesmo os de maior sucesso.
+
+2. Vendas: América do Norte vs. Japão (Gráfico Inferior):
+
+    Relação Visual Fraca/Inexistente: Este gráfico exibe uma correlação extremamente fraca ou quase inexistente entre as vendas na América do Norte e no Japão. A maioria dos pontos de dados está agrupada perto do eixo Y (Japão) em valores muito baixos, independentemente das vendas na América do Norte. A linha de regressão vermelha é quase horizontal, com uma inclinação muito suave, o que confirma a correlação quase nula (anteriormente vista como 0.06).
+    Escalas de Vendas Distintas: As escalas dos eixos são notavelmente diferentes. Enquanto a América do Norte (eixo X) vai até cerca de 10 milhões, o Japão (eixo Y) mal atinge 2 milhões. Isso demonstra que, para a maioria dos jogos, o volume de vendas no Japão é significativamente menor em comparação com a América do Norte, mesmo para títulos de grande sucesso no ocidente.
+    Dispersão e Concentração: Há uma grande concentração de pontos em vendas muito baixas no Japão, mesmo para jogos que vendem bem na América do Norte. Pontos com vendas altas na América do Norte quase sempre correspondem a vendas muito modestas no Japão. Há poucos pontos que mostram vendas altas no Japão (acima de 1.5 milhão), e mesmo esses não parecem ter uma relação clara com as vendas na América do Norte.
+
+O que posso tirar de uma análise de comparação desses gráficos:
+
+    Confirmação Visual da Correlação Numérica: Os gráficos de dispersão fornecem uma validação visual robusta das correlações numéricas da matriz anterior. A linha de regressão inclinada e os pontos agrupados no gráfico NA vs. Europa confirmam a forte relação, enquanto a linha quase plana e a dispersão ampla (especialmente em Y baixo) no gráfico NA vs. Japão confirmam a ausência de correlação.
+    Mercados Alinhados vs. Mercado Único:
+        América do Norte e Europa: Constituem mercados altamente interligados para a indústria de jogos. O sucesso em um tende a ser replicado no outro, permitindo que editoras e desenvolvedores abordem essas regiões com estratégias de marketing e localização semelhantes, esperando resultados proporcionais.
+        Japão: Destaca-se como um mercado com dinâmicas muito particulares. O sucesso na América do Norte não garante, de forma alguma, o sucesso no Japão. O volume de vendas para a maioria dos jogos no Japão é significativamente menor em comparação com o ocidente, e as preferências parecem ser bastante distintas, exigindo estratégias de produto, marketing e distribuição altamente localizadas.
+    Priorização de Mercados: Para muitos desenvolvedores e publishers, especialmente aqueles com recursos limitados, os gráficos sugerem que o foco em América do Norte e Europa pode ser mais eficiente e previsível para maximizar as vendas gerais, enquanto o investimento no mercado japonês requer uma análise de risco e adaptação de produto muito mais aprofundada. O retorno sobre o investimento de um "hit" ocidental no Japão é geralmente baixo.
+
+```{r, echo = FALSE, warning = FALSE}
+
+library(scales)
+df_regional <- df %>%
+  filter(total_sales > 0.2) %>%
+  mutate(
+    jp_prop = jp_sales / total_sales,
+    na_prop = na_sales / total_sales,
+    pal_prop = pal_sales / total_sales
+  )
+
+top_foco_japao <- df_regional %>%
+  filter(jp_prop > 0.70) %>%
+  arrange(desc(total_sales)) %>%
+  head(10) %>%
+  mutate(tipo_foco = "Foco: Japao")
+
+top_foco_ocidente <- df_regional %>%
+  filter(jp_prop < 0.05) %>%
+  arrange(desc(total_sales)) %>%
+  head(10) %>%
+  mutate(tipo_foco = "Foco: Ocidente")
+
+df_outliers <- bind_rows(top_foco_japao, top_foco_ocidente)
+
+df_outliers_long <- df_outliers %>%
+  pivot_longer(
+    cols = c("jp_prop", "na_prop", "pal_prop"),
+    names_to = "regiao",
+    values_to = "proporcao"
+  ) %>%
+  mutate(regiao = case_when(
+    regiao == "jp_prop" ~ "Japao",
+    regiao == "na_prop" ~ "America do Norte",
+    regiao == "pal_prop" ~ "Europa & Outros"
+  ))
+
+ggplot(df_outliers_long, aes(
+  x = fct_reorder(title, proporcao, .fun = last), 
+  y = proporcao,
+  fill = regiao
+)) +
+  geom_col(position = "stack") +
+  
+  facet_wrap(~ tipo_foco, scales = "free_x") +
+  
+  scale_y_continuous(labels = percent_format()) +
+  scale_fill_manual(values = c(
+    "America do Norte" = "#0072B2", 
+    "Europa & Outros" = "#56B4E9", 
+    "Japao" = "#D55E00"
+  )) +
+  
+  labs(
+    title = "Analise de Outliers: Jogos Famosos em Regioes Especificas",
+    subtitle = "Comparacao da composicao de vendas dos jogos mais dependentes de cada mercado",
+    x = "Jogo",
+    y = "Porcentagem do Total de Vendas",
+    fill = "Regiao de Venda"
+  ) +
+  theme_minimal(base_size = 11) +
+  
+  theme(
+    legend.position = "top",
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
+  )
+```
+Este gráfico, intitulado "Análise de Outliers: Jogos Famosos em Regiões Específicas - Comparação da composição de vendas dos jogos mais dependentes de cada mercado", apresenta a porcentagem das vendas de jogos individuais atribuída a três regiões: América do Norte (azul escuro), Europa & Outros (azul claro) e Japão (laranja). Os jogos são categorizados em dois grupos de foco, "Foco: Japão" e "Foco: Ocidente", ilustrando graficamente a dependência regional de suas vendas.
+
+No grupo **"Foco: Japão"**, é notável a esmagadora dominância das vendas oriundas do Japão (barras laranja), que em muitos casos representam quase a totalidade das vendas para títulos como *Dragon Quest XI: Echoes of an Elusive Age*, *Super Puyo Puyo*, *Dragon Quest XI* (outra entrada), *Famista '89 - Kaimaku Han!!* e *Tomodachi Collection: New Life*. Para esses jogos, a contribuição da América do Norte e da Europa & Outros é mínima, muitas vezes quase inexistente, reafirmando que são fenômenos de mercado localizados e altamente específicos da cultura japonesa. Um caso interessante é o *Hot Shots Golf*, que aparece com três entradas e, para o primeiro "Hot Shots Golf", a soma das porcentagens ultrapassa 100%, indicando uma anomalia nos dados subjacentes ou na sua normalização, embora a preponderância das vendas no Japão continue evidente para todas as entradas desse título, solidificando seu status como um jogo com forte apelo japonês.
+
+Em contraste gritante, no grupo **"Foco: Ocidente"**, os jogos demonstram uma dependência maciça das vendas da América do Norte (barras azuis escuras) e da Europa & Outros (barras azuis claras). Títulos como *Call of Duty: Black Ops*, *Call of Duty: Modern Warfare 3*, *Grand Theft Auto V*, *Grand Theft Auto: Vice City*, *Call of Duty: Black Ops II* e *Red Dead Redemption 2* consistentemente mostram que suas vendas são quase inteiramente impulsionadas por esses dois mercados. A contribuição do Japão (barras laranja) para esses jogos é irrisória, em alguns casos mal visível no gráfico, o que sublinha o quão pouco esses títulos, que são blockbusters ocidentais, ressoam com o público japonês.
+
+Em suma, a análise desses "outliers" demonstra a profunda segmentação cultural e de mercado na indústria de videogames. Jogos com "Foco: Japão" são predominantemente sucessos regionais que raramente conseguem penetração significativa no ocidente, enquanto os jogos com "Foco: Ocidente" são campeões de vendas na América do Norte e Europa, mas encontram pouquíssima aceitação no Japão. Isso reforça a ideia de que o sucesso global em termos absolutos é frequentemente um sucesso ocidental, e que o mercado japonês opera com um conjunto de preferências e dinâmicas muito distinto, exigindo estratégias de produto, marketing e distribuição altamente específicas e customizadas para alcançar o público local. A distinção visual entre as composições de vendas de jogos desses dois grupos é um forte indicativo da necessidade de editoras e desenvolvedores compreenderem as nuances regionais para otimizar suas estratégias de mercado.
+
+```{r, echo = FALSE, warning = FALSE}
+market_share <- df %>%
+  filter(!is.na(publisher) & !is.na(total_sales)) %>%
+  group_by(publisher) %>%
+  summarise(publisher_sales = sum(total_sales, na.rm = TRUE)) %>%
+  mutate(
+    total_market_sales = sum(publisher_sales),
+    share_percent = (publisher_sales / total_market_sales) * 100
+  ) %>%
+  arrange(desc(share_percent))
+
+ihh_index <- market_share %>%
+  summarise(ihh = sum(share_percent^2)) %>%
+  pull(ihh)
+
+print(paste("O Indice Herfindahl-Hirschman (IHH) do mercado e:", round(ihh_index)))
+
+top_publishers_chart <- market_share %>%
+  head(15) %>%
+  ggplot(aes(x = share_percent, y = reorder(publisher, share_percent))) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = paste0(round(share_percent, 1), "%")), hjust = -0.2, size = 3) +
+  labs(
+    title = "Market Share das Top 15 Maiores Publishers",
+    subtitle = paste("Indice IHH do Mercado Total:", round(ihh_index)),
+    x = "Market Share (%)",
+    y = "Publisher"
+  ) +
+  theme_minimal() +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15)))
+
+print(top_publishers_chart)
+```
+Este gráfico apresenta a distribuição do Market Share das Top 15 Maiores Publishers na indústria de videogames, acompanhado de um Índice IHH (Herfindahl-Hirschman) do Mercado Total de 443. O IHH é uma medida de concentração de mercado; um valor de 443 é considerado muito baixo, indicando um mercado altamente competitivo e pouco concentrado. No entanto, a análise visual das maiores publishers revela nuances importantes.
+
+No topo da lista, a Activision lidera com 10.9% do market share, seguida de perto pela Electronic Arts (EA) com 9.8%. Juntas, essas duas empresas detêm uma fatia considerável do mercado. A EA Sports aparece logo abaixo, com 7.5%, o que é um feito notável para um selo focado principalmente em jogos de esporte, e quando somado à EA principal, reforça a dominância massiva do grupo Electronic Arts. Em seguida, a Ubisoft consolida sua posição com 7.2%, demonstrando a força de suas múltiplas franquias. As quatro maiores publishers (Activision, Electronic Arts, EA Sports e Ubisoft) somam aproximadamente 35.4% do market share entre os 15 maiores, evidenciando uma concentração visível na liderança, mesmo em um mercado que o IHH aponta como pouco concentrado no geral.
+
+Prosseguindo, a Sony Computer Entertainment detém 4.9%, destacando o impacto de seus jogos first-party e de suas plataformas, seguida de perto pela THQ com 4.8% e pela Rockstar Games com 3.7%, cujas vendas, embora menores em porcentagem, são impulsionadas por franquias de alto impacto. Na sequência, Konami (3.3%) e Sega (2.9%) mantêm posições relevantes.
+
+Finalmente, publishers como Nintendo (2%), Capcom (2%), LucasArts (1.8%), Bethesda Softworks (1.7%), Warner Bros. Interactive Entertainment (1.6%) e Disney Interactive Studios (1.6%) completam a lista dos top 15. A presença da Nintendo com apenas 2% pode parecer baixa para uma gigante, mas reflete o fato de que sua estratégia de vendas está intrinsecamente ligada ao sucesso de suas próprias plataformas, e este market share representa sua contribuição como publisher no cenário total.
+
+Apesar do baixo IHH para o mercado total (443), o qual sugere uma estrutura de mercado fragmentada e competitiva com muitos players menores, a análise dos Top 15 revela que uma porção significativa das vendas está, de fato, concentrada nas mãos de algumas grandes empresas. Isso implica que, embora existam muitos participantes na indústria, os maiores são desproporcionalmente poderosos. O Market Share demonstra a capacidade dessas publishers de criar e manter franquias de sucesso que capturam a atenção e o investimento dos consumidores globalmente, solidificando suas posições no mercado.
